@@ -40,80 +40,80 @@ local function generate(path)
 
 					if string.find(type, "obj") then
 						obj_array_flag = true
-					end
-
-					if obj_array_flag then
-						target_config = {}
-						for i = DATA_START_INDEX, #v do
-							local index = i - DATA_START_INDEX + 1
-							config[key][index] = config[key][index] or {}
-
-							if key_child then
-								config[key][index][key_child] = config[key][index][key_child] or {}
-								target_config[index] = config[key][index][key_child]
-							end
-						end
 					else
-						if key_child then
-							config[key][key_child] = config[key][key_child] or {}
-							target_config = config[key][key_child]
-						end
-					end
-
-					if type_list[2] then
-						local index_list = string.sub(type_list[2], 2, #type_list[2] - 1)
-						index_list = string.gsub(index_list, '%]%[', ':')
-						index_list = string_split(index_list, ':')
-
-						local code = "function create_array(config)\n"
-						local config_code =  "config"
-						for _, index in pairs(index_list) do
-							config_code = config_code .. "[" .. index .. "]"
-							code = code .. config_code .. " = " .. config_code .. " or {}\n"
-						end
-						code = code .. "return " .. config_code .. "\n"
-						code = code .. "end"
-
-						loadstring(code)()
-
 						if obj_array_flag then
+							target_config = {}
 							for i = DATA_START_INDEX, #v do
 								local index = i - DATA_START_INDEX + 1
-								target_config[index] = create_array(target_config[index])
+								config[key][index] = config[key][index] or {}
+
+								if key_child then
+									config[key][index][key_child] = config[key][index][key_child] or {}
+									target_config[index] = config[key][index][key_child]
+								end
 							end
 						else
-							target_config = create_array(target_config)
+							if key_child then
+								config[key][key_child] = config[key][key_child] or {}
+								target_config = config[key][key_child]
+							end
 						end
-					end
 
-					if key_child then
-						if obj_array_flag then
-							for i = DATA_START_INDEX, #v do
-								local index = i - DATA_START_INDEX + 1
+						if type_list[2] then
+							local index_list = string.sub(type_list[2], 2, #type_list[2] - 1)
+							index_list = string.gsub(index_list, '%]%[', ':')
+							index_list = string_split(index_list, ':')
+
+							local code = "function create_array(config)\n"
+							local config_code =  "config"
+							for _, index in pairs(index_list) do
+								config_code = config_code .. "[" .. index .. "]"
+								code = code .. config_code .. " = " .. config_code .. " or {}\n"
+							end
+							code = code .. "return " .. config_code .. "\n"
+							code = code .. "end"
+
+							loadstring(code)()
+
+							if obj_array_flag then
+								for i = DATA_START_INDEX, #v do
+									local index = i - DATA_START_INDEX + 1
+									target_config[index] = create_array(target_config[index])
+								end
+							else
+								target_config = create_array(target_config)
+							end
+						end
+
+						if key_child then
+							if obj_array_flag then
+								for i = DATA_START_INDEX, #v do
+									local index = i - DATA_START_INDEX + 1
+									if string.find(type, "int") then
+										table.insert(target_config[index], tonumber(v[i]))
+									elseif string.find(type, "string") then 
+										table.insert(target_config[index], tostring(v[i]))
+									end
+								end
+							else
 								if string.find(type, "int") then
-									table.insert(target_config[index], tonumber(v[i]))
+									table.insert(target_config, tonumber(v[DATA_START_INDEX]))
 								elseif string.find(type, "string") then 
-									table.insert(target_config[index], tostring(v[i]))
+									table.insert(target_config, tostring(v[DATA_START_INDEX]))
 								end
 							end
 						else
 							if string.find(type, "int") then
-								table.insert(target_config, tonumber(v[DATA_START_INDEX]))
+								for i = DATA_START_INDEX, #v do
+									table.insert(target_config, tonumber(v[i]))
+								end
 							elseif string.find(type, "string") then 
-								table.insert(target_config, tostring(v[DATA_START_INDEX]))
+								for i = DATA_START_INDEX, #v do
+									table.insert(target_config, tostring(v[i]))
+								end
 							end
 						end
-					else
-						if string.find(type, "int") then
-							for i = DATA_START_INDEX, #v do
-								table.insert(target_config, tonumber(v[i]))
-							end
-						elseif string.find(type, "string") then 
-							for i = DATA_START_INDEX, #v do
-								table.insert(target_config, tostring(v[i]))
-							end
-						end
-					end
+					end					
 				else
 					local value = {}
 
