@@ -19,6 +19,7 @@ local function generate(path)
 
 		local obj_array_flag = false
 		local obj_array_prefix = nil
+		local obj_array_offset = 0
 		
 		for k, v in pairs(sheet_data) do
 			local id = v[ID_INDEX]
@@ -33,6 +34,7 @@ local function generate(path)
 				if not key_child then
 					obj_array_flag = false
 					obj_array_prefix = nil
+					obj_array_offset = 0
 				end
 
 				if string.find(type, "%[%]") then
@@ -64,11 +66,12 @@ local function generate(path)
 					if string.find(type, "obj") then
 						obj_array_flag = true
 						obj_array_prefix = is_multi_array and create_array(config[key]) or config[key]
+						obj_array_offset = #obj_array_prefix
 					else
 						if obj_array_flag then
 							target_config = {}
 							for i = DATA_START_INDEX, #v do
-								local index = i - DATA_START_INDEX + 1
+								local index = i - DATA_START_INDEX + 1 + obj_array_offset
 								obj_array_prefix[index] = obj_array_prefix[index] or {}
 
 								obj_array_prefix[index][key_child] = obj_array_prefix[index][key_child] or {}
@@ -84,7 +87,7 @@ local function generate(path)
 						if is_multi_array then
 							if obj_array_flag then
 								for i = DATA_START_INDEX, #v do
-									local index = i - DATA_START_INDEX + 1
+									local index = i - DATA_START_INDEX + 1 + obj_array_offset
 									target_config[index] = create_array(target_config[index])
 								end
 							else
@@ -95,7 +98,7 @@ local function generate(path)
 						if key_child then
 							if obj_array_flag then
 								for i = DATA_START_INDEX, #v do
-									local index = i - DATA_START_INDEX + 1
+									local index = i - DATA_START_INDEX + 1 + obj_array_offset
 									if string.find(type, "int") then
 										table.insert(target_config[index], tonumber(v[i]))
 									elseif string.find(type, "string") then 
@@ -132,7 +135,7 @@ local function generate(path)
 								value = tostring(v[i])
 							end	
 
-							local index = i - DATA_START_INDEX + 1
+							local index = i - DATA_START_INDEX + 1 + obj_array_offset
 							obj_array_prefix[index] = obj_array_prefix[index] or {}
 							obj_array_prefix[index][key_child] = value
 						end
