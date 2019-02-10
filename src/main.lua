@@ -23,10 +23,10 @@ local function generate(path)
 		for k, v in pairs(sheet_data) do
 			local id = v[ID_INDEX]
 			if id and string.sub(id, 1, 1) ~= '#' then
-				local id_list = string_split(id, ':')
+				local id_list = stringSplit(id, ':')
 				local key = id_list[1]
 
-				local type_list = string_split(v[TYPE_INDEX], ':')
+				local type_list = stringSplit(v[TYPE_INDEX], ':')
 				local type = type_list[1]
 				local key_child = id_list[2]
 
@@ -45,7 +45,7 @@ local function generate(path)
 					if type_list[2] then
 						local index_list = string.sub(type_list[2], 2, #type_list[2] - 1)
 						index_list = string.gsub(index_list, '%]%[', ':')
-						index_list = string_split(index_list, ':')
+						index_list = stringSplit(index_list, ':')
 
 						local code = "function create_array(config)\n"
 						local config_code =  "config"
@@ -154,14 +154,32 @@ local function generate(path)
 		end
 	end
 
-	printt(config)
-
 	book:Close()
+
+	return config
+end
+
+function createFile(config, path, file_name)
+	file_name = getFileName(file_name)
+	--to lua 
+	local lua = table2Lua(config)
+	local file = io.open(path .. "\\" .. file_name .. ".lua", "w")
+	io.output(file)
+	io.write(lua)
+	io.close(file)
+
+	--to json
+	local json = table2Json(config)
+	local file = io.open(path .. "\\" .. file_name .. ".json", "w")
+	io.output(file)
+	io.write(json)
+	io.close(file)
 end
 
 for file_name in lfs.dir(EXCEL_PATH) do
 	if file_name ~= "." and file_name ~= ".." then
-		generate(EXCEL_PATH.."\\"..file_name)
+		local config = generate(EXCEL_PATH.."\\"..file_name)
+		createFile(config, OUT_PATH, file_name)
 	end
 end
 
