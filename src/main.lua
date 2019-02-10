@@ -3,6 +3,11 @@ require("util")
 
 local excel = luacom.GetObject('Excel.Application') or luacom.CreateObject('Excel.Application')
 
+local ID_INDEX = 1
+local TYPE_INDEX = 2
+local COMMENT_INDEX = 3
+local DATA_START_INDEX = 4
+
 local function generate(path)
 	local book = excel.Workbooks:Open(path, nil, true)
 	local config = {}
@@ -15,14 +20,18 @@ local function generate(path)
 		local obj_array_flag = false
 		
 		for k, v in pairs(sheet_data) do
-			local id = v[1]
+			local id = v[ID_INDEX]
 			if id and string.sub(id, 1, 1) ~= '#' then
 				local id_list = string_split(id, ':')
 				local key = id_list[1]
 
-				local type_list = string_split(v[2], ':')
+				local type_list = string_split(v[TYPE_INDEX], ':')
 				local type = type_list[1]
 				local key_child = id_list[2]
+
+				if not key_child then
+					obj_array_flag = false
+				end
 
 				if string.find(type, "%[%]") then
 					config[key] = config[key] or {}
@@ -33,9 +42,22 @@ local function generate(path)
 						obj_array_flag = true
 					end
 
-					if key_child then
-						config[key][key_child] = config[key][key_child] or {}
-						target_config = config[key][key_child]
+					if obj_array_flag then
+						target_config = {}
+						for i = DATA_START_INDEX, #v do
+							local index = i - DATA_START_INDEX + 1
+							config[key][index] = config[key][index] or {}
+
+							if key_child then
+								config[key][index][key_child] = config[key][index][key_child] or {}
+								target_config[index] = config[key][index][key_child]
+							end
+						end
+					else
+						if key_child then
+							config[key][key_child] = config[key][key_child] or {}
+							target_config = config[key][key_child]
+						end
 					end
 
 					if type_list[2] then
@@ -53,43 +75,72 @@ local function generate(path)
 						code = code .. "end"
 
 						loadstring(code)()
-						target_config = create_array(target_config)
+
+						if obj_array_flag then
+							for i = DATA_START_INDEX, #v do
+								local index = i - DATA_START_INDEX + 1
+								target_config[index] = create_array(target_config[index])
+							end
+						else
+							target_config = create_array(target_config)
+						end
 					end
 
 					if key_child then
-						if string.find(type, "int") then
-							table.insert(target_config, tonumber(v[4]))
-						elseif string.find(type, "string") then 
-							table.insert(target_config, tostring(v[4]))
+						if obj_array_flag then
+							for i = DATA_START_INDEX, #v do
+								local index = i - DATA_START_INDEX + 1
+								if string.find(type, "int") then
+									table.insert(target_config[index], tonumber(v[i]))
+								elseif string.find(type, "string") then 
+									table.insert(target_config[index], tostring(v[i]))
+								end
+							end
+						else
+							if string.find(type, "int") then
+								table.insert(target_config, tonumber(v[DATA_START_INDEX]))
+							elseif string.find(type, "string") then 
+								table.insert(target_config, tostring(v[DATA_START_INDEX]))
+							end
 						end
 					else
 						if string.find(type, "int") then
-							for i = 4, #v do
+							for i = DATA_START_INDEX, #v do
 								table.insert(target_config, tonumber(v[i]))
 							end
 						elseif string.find(type, "string") then 
-							for i = 4, #v do
+							for i = DATA_START_INDEX, #v do
 								table.insert(target_config, tostring(v[i]))
 							end
 						end
-
-						obj_array_flag = false
 					end
 				else
 					local value = {}
 
-					if type == "int" then
-						value = tonumber(v[4])
-					elseif type == "string" then
-						value = tostring(v[4])
-					end	
+					if obj_array_flag then
+						for i = DATA_START_INDEX, #v do
+							if type == "int" then
+								value = tonumber(v[i])
+							elseif type == "string" then
+								value = tostring(v[i])
+							end	
 
-					if key_child then
-						config[key][key_child] = value
+							local index = i - DATA_START_INDEX + 1
+							config[key][index] = config[key][index] or {}
+							config[key][index][key_child] = value
+						end
 					else
-						config[key] = value
+						if type == "int" then
+							value = tonumber(v[DATA_START_INDEX])
+						elseif type == "string" then
+							value = tostring(v[DATA_START_INDEX])
+						end	
 
-						obj_array_flag = false
+						if key_child then
+							config[key][key_child] = value
+						else
+							config[key] = value
+						end
 					end
 				end
 			end
