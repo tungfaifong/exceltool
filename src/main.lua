@@ -18,6 +18,7 @@ local function generate(path)
 		local sheet_data = sheet:Range("A3:" .. col .. row).Value2
 
 		local obj_array_flag = false
+		local obj_array_prefix = nil
 		
 		for k, v in pairs(sheet_data) do
 			local id = v[ID_INDEX]
@@ -31,6 +32,7 @@ local function generate(path)
 
 				if not key_child then
 					obj_array_flag = false
+					obj_array_prefix = nil
 				end
 
 				if string.find(type, "%[%]") then
@@ -38,19 +40,39 @@ local function generate(path)
 
 					local target_config = config[key]
 
+					local is_multi_array = false
+
+					if type_list[2] then
+						local index_list = string.sub(type_list[2], 2, #type_list[2] - 1)
+						index_list = string.gsub(index_list, '%]%[', ':')
+						index_list = string_split(index_list, ':')
+
+						local code = "function create_array(config)\n"
+						local config_code =  "config"
+						for _, index in pairs(index_list) do
+							config_code = config_code .. "[" .. index .. "]"
+							code = code .. config_code .. " = " .. config_code .. " or {}\n"
+						end
+						code = code .. "return " .. config_code .. "\n"
+						code = code .. "end"
+
+						loadstring(code)()
+
+						is_multi_array = true
+					end
+
 					if string.find(type, "obj") then
 						obj_array_flag = true
+						obj_array_prefix = is_multi_array and create_array(config[key]) or config[key]
 					else
 						if obj_array_flag then
 							target_config = {}
 							for i = DATA_START_INDEX, #v do
 								local index = i - DATA_START_INDEX + 1
-								config[key][index] = config[key][index] or {}
+								obj_array_prefix[index] = obj_array_prefix[index] or {}
 
-								if key_child then
-									config[key][index][key_child] = config[key][index][key_child] or {}
-									target_config[index] = config[key][index][key_child]
-								end
+								obj_array_prefix[index][key_child] = obj_array_prefix[index][key_child] or {}
+								target_config[index] = obj_array_prefix[index][key_child]
 							end
 						else
 							if key_child then
@@ -59,22 +81,7 @@ local function generate(path)
 							end
 						end
 
-						if type_list[2] then
-							local index_list = string.sub(type_list[2], 2, #type_list[2] - 1)
-							index_list = string.gsub(index_list, '%]%[', ':')
-							index_list = string_split(index_list, ':')
-
-							local code = "function create_array(config)\n"
-							local config_code =  "config"
-							for _, index in pairs(index_list) do
-								config_code = config_code .. "[" .. index .. "]"
-								code = code .. config_code .. " = " .. config_code .. " or {}\n"
-							end
-							code = code .. "return " .. config_code .. "\n"
-							code = code .. "end"
-
-							loadstring(code)()
-
+						if is_multi_array then
 							if obj_array_flag then
 								for i = DATA_START_INDEX, #v do
 									local index = i - DATA_START_INDEX + 1
@@ -126,8 +133,8 @@ local function generate(path)
 							end	
 
 							local index = i - DATA_START_INDEX + 1
-							config[key][index] = config[key][index] or {}
-							config[key][index][key_child] = value
+							obj_array_prefix[index] = obj_array_prefix[index] or {}
+							obj_array_prefix[index][key_child] = value
 						end
 					else
 						if type == "int" then
@@ -145,9 +152,9 @@ local function generate(path)
 				end
 			end
 		end
-
-		printt(config)
 	end
+
+	printt(config)
 
 	book:Close()
 end
