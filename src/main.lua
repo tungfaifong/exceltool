@@ -1,7 +1,13 @@
 require("config")
 require("util")
 
-local excel = luacom.GetObject('Excel.Application') or luacom.CreateObject('Excel.Application')
+local excel = luacom.GetObject('Excel.Application')
+local is_opening_excel = true
+
+if not excel then
+	excel = luacom.CreateObject('Excel.Application')
+	is_opening_excel = false
+end
 
 local ID_INDEX = 1
 local TYPE_INDEX = 2
@@ -180,10 +186,12 @@ function createFile(config, path, file_name)
 end
 
 for file_name in lfs.dir(EXCEL_PATH) do
-	if file_name ~= "." and file_name ~= ".." then
+	if file_name ~= "." and file_name ~= ".." and string.sub(file_name, 1, 2) ~= "~$" then
 		local config = generate(EXCEL_PATH.."\\"..file_name)
 		createFile(config, OUT_PATH, file_name)
 	end
 end
 
-excel.Application:Quit()
+if not is_opening_excel then
+	excel.Application:Quit()
+end
