@@ -19,9 +19,9 @@ local function generate(path)
 	local config = {}
 	for i = 1, book.Sheets.Count do
 		local sheet = book.Sheets(i)
-		local row = sheet.Cells(1, 3).Value2
-		local col = sheet.Cells(1, 5).Value2
-		local sheet_data = sheet:Range("A3:" .. col .. row).Value2
+		local row = sheet.usedrange.rows.count
+		local col = sheet.usedrange.columns.count
+		local sheet_data = sheet:Range(sheet.Cells(2, 1), sheet.Cells(row, col)).Value2
 
 		local obj_array_flag = false
 		local obj_array_prefix = nil
