@@ -43,7 +43,7 @@ SOFTWARE.
 
 -- global dependencies:
 local pairs, type, tostring, tonumber, getmetatable, setmetatable, rawset =
-      pairs, type, tostring, tonumber, getmetatable, setmetatable, rawset
+      pairsByKeys, type, tostring, tonumber, getmetatable, setmetatable, rawset
 local error, require, pcall, select = error, require, pcall, select
 local floor, huge = math.floor, math.huge
 local strrep, gsub, strsub, strbyte, strchar, strfind, strlen, strformat =
@@ -74,21 +74,21 @@ json.null = setmetatable ({}, {
 local function isarray (tbl)
   local max, n, arraylen = 0, 0, 0
   for k,v in pairs (tbl) do
-    if k == 'n' and type(v) == 'number' then
-      arraylen = v
-      if v > max then
-        max = v
+      if k == 'n' and type(v) == 'number' then
+        arraylen = v
+        if v > max then
+          max = v
+        end
+      else
+        if type(k) ~= 'number' or k < 1 or floor(k) ~= k then
+          return false
+        end
+        if k > max then
+          max = k
+        end
+        n = n + 1
       end
-    else
-      if type(k) ~= 'number' or k < 1 or floor(k) ~= k then
-        return false
-      end
-      if k > max then
-        max = k
-      end
-      n = n + 1
     end
-  end
   if max > 10 and max > arraylen and max > n * 2 then
     return false -- don't create an array with too many holes
   end
@@ -334,9 +334,12 @@ encode2 = function (value, indent, level, buffer, buflen, tables, globalorder, s
         end
       else -- unordered
         for k,v in pairs (value) do
-          buflen, msg = addpair (k, v, prev, indent, level, buffer, buflen, tables, globalorder, state)
-          if not buflen then return nil, msg end
-          prev = true -- add a seperator before the next element
+          --加了一个插入排序 跳过该对象导出
+          if k ~= "#sort#" then
+            buflen, msg = addpair (k, v, prev, indent, level, buffer, buflen, tables, globalorder, state)
+            if not buflen then return nil, msg end
+            prev = true -- add a seperator before the next element
+          end
         end
       end
       if indent then
