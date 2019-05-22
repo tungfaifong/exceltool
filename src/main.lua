@@ -15,7 +15,7 @@ function createFile(config, path, file_name)
 
 	--to lua 
 	local lua = table2Lua(config)
-	local file = io.open(path .. "\\" .. file_name .. ".lua", "w")
+	local file = io.open(path .. "\\" .. "config_" .. file_name .. ".lua", "w")
 	io.output(file)
 	io.write(lua)
 	io.close(file)

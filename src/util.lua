@@ -33,14 +33,12 @@ function serializeLua(lua_table, indent)
         --加了一个插入排序 跳过该对象导出
         if k ~= "#sort#" then
             if type(k) == "string" then
-                k = string.format("%q", k)
+                string = string .. k .. " = "
             end
-            local szPrefix = string.rep("    ", indent)
-            string = string .. szPrefix .. "[" .. k .. "]" .." = "
             if type(v) == "table" then
-                string = string .. "{\n"
-                string = string .. serializeLua(v, indent + 1) .. "\n"
-                string = string .. szPrefix .. "}," .. "\n"
+                string = string .. "{"
+                string = string .. serializeLua(v, indent + 1) .. ""
+                string = string .. "},"
             else
                 local szValue = ""
                 if type(v) == "string" then
@@ -50,7 +48,7 @@ function serializeLua(lua_table, indent)
                 end
                 string = string .. szValue
                 if k ~= #lua_table then
-                    string = string .. "," .. "\n"
+                    string = string .. "," .. ""
                 end
             end
         end
@@ -60,8 +58,8 @@ end
 
 function table2Lua(lua_table)
     local string = "local Config = Config or {}\n"
-    string = string .. "Config = {\n"
-    string = string .. serializeLua(lua_table, 1) .. "\n"
+    string = string .. "Config = {"
+    string = string .. serializeLua(lua_table, 1) .. ""
     string = string .. "}\n"
     string = string .. "return Config"
     return string
@@ -75,8 +73,10 @@ end
 function pairsByKeys(t)
     local a = {}
 
-    for n in pairs(t) do
-        a[#a + 1] = n
+    for n, v in pairs(t) do
+        if type(v) ~= "table" or next(v) ~= nil then 
+            a[#a + 1] = n 
+        end
     end
 
     local sort_function = nil

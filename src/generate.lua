@@ -73,7 +73,7 @@ function generate(path)
 					else
 						if obj_array_flag then
 							target_config = {}
-							for i = DATA_START_INDEX, #v do
+							for i = DATA_START_INDEX, table.maxn(v) do
 								local index = i - DATA_START_INDEX + 1 + obj_array_offset
 								obj_array_prefix[index] = obj_array_prefix[index] or {}
 								obj_array_prefix[index]["#sort#"] = obj_array_prefix[index]["#sort#"] or {}
@@ -101,7 +101,7 @@ function generate(path)
 
 						if is_multi_array then
 							if obj_array_flag then
-								for i = DATA_START_INDEX, #v do
+								for i = DATA_START_INDEX, table.maxn(v) do
 									local index = i - DATA_START_INDEX + 1 + obj_array_offset
 									target_config[index] = create_array(target_config[index])
 								end
@@ -112,37 +112,47 @@ function generate(path)
 
 						if key_child then
 							if obj_array_flag then
-								for i = DATA_START_INDEX, #v do
-									local index = i - DATA_START_INDEX + 1 + obj_array_offset
-									if string.find(type, "int") then
-										table.insert(target_config[index], math.floor(tonumber(v[i])))
-									elseif string.find(type, "float") then
-										table.insert(target_config[index], tonumber(v[i]))
-									elseif string.find(type, "string") then 
-										table.insert(target_config[index], tostring(v[i]))
+								for i = DATA_START_INDEX, table.maxn(v) do
+									if v[i] then
+										local index = i - DATA_START_INDEX + 1 + obj_array_offset
+										if string.find(type, "int") then
+											table.insert(target_config[index], math.floor(tonumber(v[i])))
+										elseif string.find(type, "float") then
+											table.insert(target_config[index], tonumber(v[i]))
+										elseif string.find(type, "string") then 
+											table.insert(target_config[index], tostring(v[i]))
+										end
 									end
 								end
 							else
-								if string.find(type, "int") then
-									table.insert(target_config, math.floor(tonumber(v[DATA_START_INDEX])))
-								elseif string.find(type, "float") then
-									table.insert(target_config, tonumber(v[DATA_START_INDEX]))
-								elseif string.find(type, "string") then 
-									table.insert(target_config, tostring(v[DATA_START_INDEX]))
+								if v[DATA_START_INDEX] then
+									if string.find(type, "int") then
+										table.insert(target_config, math.floor(tonumber(v[DATA_START_INDEX])))
+									elseif string.find(type, "float") then
+										table.insert(target_config, tonumber(v[DATA_START_INDEX]))
+									elseif string.find(type, "string") then 
+										table.insert(target_config, tostring(v[DATA_START_INDEX]))
+									end
 								end
 							end
 						else
 							if string.find(type, "int") then
-								for i = DATA_START_INDEX, #v do
-									table.insert(target_config, math.floor(tonumber(v[i])))
+								for i = DATA_START_INDEX, table.maxn(v) do
+									if v[i] then
+										table.insert(target_config, math.floor(tonumber(v[i])))
+									end
 								end
 							elseif string.find(type, "float") then
-								for i = DATA_START_INDEX, #v do
-									table.insert(target_config, tonumber(v[i]))
+								for i = DATA_START_INDEX, table.maxn(v) do
+									if v[i] then
+										table.insert(target_config, tonumber(v[i]))
+									end
 								end
 							elseif string.find(type, "string") then 
-								for i = DATA_START_INDEX, #v do
-									table.insert(target_config, tostring(v[i]))
+								for i = DATA_START_INDEX, table.maxn(v) do
+									if v[i] then
+										table.insert(target_config, tostring(v[i]))
+									end
 								end
 							end
 						end
@@ -151,44 +161,48 @@ function generate(path)
 					local value = {}
 
 					if obj_array_flag then
-						for i = DATA_START_INDEX, #v do
-							if type == "int" then
-								value = math.floor(tonumber(v[i]))
-							elseif type == "float" then
-								value = tonumber(v[i])
-							elseif type == "string" then
-								value = tostring(v[i])
-							end	
+						for i = DATA_START_INDEX, table.maxn(v) do
+							if v[i] or string.find(type, "obj") then
+								if type == "int" then
+									value = math.floor(tonumber(v[i]))
+								elseif type == "float" then
+									value = tonumber(v[i])
+								elseif type == "string" then
+									value = tostring(v[i])
+								end	
 
-							local index = i - DATA_START_INDEX + 1 + obj_array_offset
-							obj_array_prefix[index] = obj_array_prefix[index] or {}
-							obj_array_prefix[index]["#sort#"] = obj_array_prefix[index]["#sort#"] or {}
-							obj_array_prefix[index][key_child] = value
+								local index = i - DATA_START_INDEX + 1 + obj_array_offset
+								obj_array_prefix[index] = obj_array_prefix[index] or {}
+								obj_array_prefix[index]["#sort#"] = obj_array_prefix[index]["#sort#"] or {}
+								obj_array_prefix[index][key_child] = value
 
-							if not obj_array_prefix[index]["#sort#"][key_child] then
-								obj_array_prefix[index]["#sort#"][key_child] = sort_mark
-								sort_mark = sort_mark + 1
+								if not obj_array_prefix[index]["#sort#"][key_child] then
+									obj_array_prefix[index]["#sort#"][key_child] = sort_mark
+									sort_mark = sort_mark + 1
+								end
 							end
 						end
 					else
-						if type == "int" then
-							value = math.floor(tonumber(v[DATA_START_INDEX]))
-						elseif type == "float" then
-							value = tonumber(v[DATA_START_INDEX])
-						elseif type == "string" then
-							value = tostring(v[DATA_START_INDEX])
-						end	
+						if v[DATA_START_INDEX] or string.find(type, "obj") then
+							if type == "int" then
+								value = math.floor(tonumber(v[DATA_START_INDEX]))
+							elseif type == "float" then
+								value = tonumber(v[DATA_START_INDEX])
+							elseif type == "string" then
+								value = tostring(v[DATA_START_INDEX])
+							end	
 
-						if key_child then
-							config[key]["#sort#"] = config[key]["#sort#"] or {}
-							config[key][key_child] = value
+							if key_child then
+								config[key]["#sort#"] = config[key]["#sort#"] or {}
+								config[key][key_child] = value
 
-							if not config[key]["#sort#"][key_child] then
-								config[key]["#sort#"][key_child] = sort_mark
-								sort_mark = sort_mark + 1
+								if not config[key]["#sort#"][key_child] then
+									config[key]["#sort#"][key_child] = sort_mark
+									sort_mark = sort_mark + 1
+								end
+							else
+								config[key] = value
 							end
-						else
-							config[key] = value
 						end
 					end
 				end
