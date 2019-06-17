@@ -28,12 +28,23 @@ function createFile(config, path, file_name)
 	io.close(file)
 end
 
-for file_name in winfile.dir(EXCEL_PATH) do
-	if file_name ~= "." and file_name ~= ".." and string.sub(file_name, 1, 2) ~= "~$" then
-		local config = generate(EXCEL_PATH.."\\"..file_name)
-		createFile(config, OUT_PATH, file_name)
+function createPath(Path, OutPath)
+	for file_name in winfile.dir(Path) do
+		if file_name ~= "." and file_name ~= ".." and string.sub(file_name, 1, 2) ~= "~$" then
+			local path = Path.."\\"..file_name
+			local out_path = OutPath.."\\"..file_name
+			local attr = winfile.attributes(path)
+			if attr.mode == "file" then
+				local config = generate(path)
+				createFile(config, OutPath, file_name)
+			elseif attr.mode == "directory" then
+				createPath(path.."\\", out_path.."\\")
+			end
+		end
 	end
 end
+
+createPath(EXCEL_PATH, OUT_PATH)
 
 if not is_opening_excel then
 	excel.Application:Quit()
