@@ -1,9 +1,24 @@
 ID_INDEX = 1
 TYPE_INDEX = 2
-COMMENT_INDEX = 3
-DATA_START_INDEX = 4
+OUT_TYPE_INDEX = 3
+COMMENT_INDEX = 4
+DATA_START_INDEX = 5
 
-function generate(path)
+FLOAT_FIX = 0.0000000000005
+
+function get_value(data_type, value)
+	if string.find(data_type, "bool") then
+		return tonumber(value) > 0
+	elseif string.find(data_type, "int") then
+		return math.floor(tonumber(value) + FLOAT_FIX)
+	elseif string.find(data_type, "float") then
+		return tonumber(value)
+	elseif string.find(data_type, "string") then 
+		return tostring(value)
+	end
+end
+
+function generate(path, type)
 	local book = excel.Workbooks:Open(path, nil, true)
 	local config = {}
 	config["#sort#"] = {}
@@ -14,6 +29,12 @@ function generate(path)
 		local row = sheet.usedrange.rows.count
 		local col = sheet.usedrange.columns.count
 		local sheet_data = sheet:Range(sheet.Cells(2, 1), sheet.Cells(row, col)).Value2
+		
+		-- 转置表
+		if string.sub(sheet.Cells(1, 1).Value2, 1, 1) == '~' then
+			sheet_data = excel.WorksheetFunction:Transpose(sheet:Range(sheet.Cells(1, 1), sheet.Cells(row, col)))
+			table.remove(sheet_data, 1)
+		end
 
 		local obj_array_flag = false
 		local obj_array_prefix = nil
@@ -21,7 +42,8 @@ function generate(path)
 		
 		for k, v in pairs(sheet_data) do
 			local id = v[ID_INDEX]
-			if id and string.sub(id, 1, 1) ~= '#' then
+			local out_type = v[OUT_TYPE_INDEX]
+			if id and string.sub(id, 1, 1) ~= '#' and (out_type == nil or out_type == type) then
 				local id_list = stringSplit(id, ':')
 				local key = id_list[1]
 
@@ -31,7 +53,7 @@ function generate(path)
 				end
 
 				local type_list = stringSplit(v[TYPE_INDEX], ':')
-				local type = type_list[1]
+				local data_type = type_list[1]
 				local key_child = id_list[2]
 
 				if not key_child then
@@ -40,7 +62,7 @@ function generate(path)
 					obj_array_offset = 0
 				end
 
-				if string.find(type, "%[%]") then
+				if string.find(data_type, "%[%]") then
 					config[key] = config[key] or {}
 
 					local target_config = config[key]
@@ -66,7 +88,7 @@ function generate(path)
 						is_multi_array = true
 					end
 
-					if string.find(type, "obj") then
+					if string.find(data_type, "obj") then
 						obj_array_flag = true
 						obj_array_prefix = is_multi_array and create_array(config[key]) or config[key]
 						obj_array_offset = #obj_array_prefix
@@ -115,44 +137,18 @@ function generate(path)
 								for i = DATA_START_INDEX, table.maxn(v) do
 									if v[i] then
 										local index = i - DATA_START_INDEX + 1 + obj_array_offset
-										if string.find(type, "int") then
-											table.insert(target_config[index], math.floor(tonumber(v[i])))
-										elseif string.find(type, "float") then
-											table.insert(target_config[index], tonumber(v[i]))
-										elseif string.find(type, "string") then 
-											table.insert(target_config[index], tostring(v[i]))
-										end
+										table.insert(target_config[index], get_value(data_type, v[i]))
 									end
 								end
 							else
 								if v[DATA_START_INDEX] then
-									if string.find(type, "int") then
-										table.insert(target_config, math.floor(tonumber(v[DATA_START_INDEX])))
-									elseif string.find(type, "float") then
-										table.insert(target_config, tonumber(v[DATA_START_INDEX]))
-									elseif string.find(type, "string") then 
-										table.insert(target_config, tostring(v[DATA_START_INDEX]))
-									end
+									table.insert(target_config, get_value(data_type, v[DATA_START_INDEX]))
 								end
 							end
 						else
-							if string.find(type, "int") then
-								for i = DATA_START_INDEX, table.maxn(v) do
-									if v[i] then
-										table.insert(target_config, math.floor(tonumber(v[i])))
-									end
-								end
-							elseif string.find(type, "float") then
-								for i = DATA_START_INDEX, table.maxn(v) do
-									if v[i] then
-										table.insert(target_config, tonumber(v[i]))
-									end
-								end
-							elseif string.find(type, "string") then 
-								for i = DATA_START_INDEX, table.maxn(v) do
-									if v[i] then
-										table.insert(target_config, tostring(v[i]))
-									end
+							for i = DATA_START_INDEX, table.maxn(v) do
+								if v[i] then
+									table.insert(target_config, get_value(data_type, v[i]))
 								end
 							end
 						end
@@ -162,14 +158,8 @@ function generate(path)
 
 					if obj_array_flag then
 						for i = DATA_START_INDEX, table.maxn(v) do
-							if v[i] or string.find(type, "obj") then
-								if type == "int" then
-									value = math.floor(tonumber(v[i]))
-								elseif type == "float" then
-									value = tonumber(v[i])
-								elseif type == "string" then
-									value = tostring(v[i])
-								end	
+							if v[i] or string.find(data_type, "obj") then
+								value = get_value(data_type, v[i])
 
 								local index = i - DATA_START_INDEX + 1 + obj_array_offset
 								obj_array_prefix[index] = obj_array_prefix[index] or {}
@@ -183,14 +173,8 @@ function generate(path)
 							end
 						end
 					else
-						if v[DATA_START_INDEX] or string.find(type, "obj") then
-							if type == "int" then
-								value = math.floor(tonumber(v[DATA_START_INDEX]))
-							elseif type == "float" then
-								value = tonumber(v[DATA_START_INDEX])
-							elseif type == "string" then
-								value = tostring(v[DATA_START_INDEX])
-							end	
+						if v[DATA_START_INDEX] or string.find(data_type, "obj") then
+							value = get_value(data_type, v[DATA_START_INDEX])
 
 							if key_child then
 								config[key]["#sort#"] = config[key]["#sort#"] or {}

@@ -10,21 +10,29 @@ if not excel then
 	is_opening_excel = false
 end
 
-function createFile(config, path, file_name)
+FileType = 
+{
+	LUA = 1,
+	JSON = 2,
+}
+
+function createFile(file_type, config, path, file_name)
 	file_name = stringSplit(getFileName(file_name), "#")[1]
 
-	--to lua 
-	local lua = table2Lua(config)
-	local file = io.open(path .. "\\" .. "config_" .. file_name .. ".lua", "w")
-	io.output(file)
-	io.write(lua)
-	io.close(file)
+	local file_table
+	local file
+	if file_type == FileType.LUA then
+		file_table = table2Lua(config)
+		file = io.open(path .. "\\" .. "config_" .. file_name .. ".lua", "w")
+	elseif file_type == FileType.JSON then
+		file_table = table2Json(config)
+		file = io.open(path .. "\\" .. file_name .. ".json", "w")
+	else
+		return
+	end
 
-	--to json
-	local json = table2Json(config)
-	local file = io.open(path .. "\\" .. file_name .. ".json", "w")
 	io.output(file)
-	io.write(json)
+	io.write(file_table)
 	io.close(file)
 end
 
@@ -35,8 +43,10 @@ function createPath(Path, OutPath)
 			local out_path = OutPath.."\\"..file_name
 			local attr = winfile.attributes(path)
 			if attr.mode == "file" then
-				local config = generate(path)
-				createFile(config, OutPath, file_name)
+				local lua_config = generate(path, "lua")
+				createFile(FileType.LUA, lua_config, OutPath, file_name)
+				local json_config = generate(path, "json")
+				createFile(FileType.JSON, json_config, OutPath, file_name)
 			elseif attr.mode == "directory" then
 				createPath(path.."\\", out_path.."\\")
 			end
