@@ -15,6 +15,8 @@ function get_value(data_type, value)
 		return tonumber(value)
 	elseif string.find(data_type, "string") then 
 		return tostring(value)
+	elseif string.find(data_type, "obj") then 
+		return {}
 	end
 end
 
@@ -154,12 +156,10 @@ function generate(path, type)
 						end
 					end					
 				else
-					local value = {}
-
 					if obj_array_flag then
 						for i = DATA_START_INDEX, table.maxn(v) do
 							if v[i] or string.find(data_type, "obj") then
-								value = get_value(data_type, v[i])
+								local value = get_value(data_type, v[i])
 
 								local index = i - DATA_START_INDEX + 1 + obj_array_offset
 								obj_array_prefix[index] = obj_array_prefix[index] or {}
@@ -174,7 +174,7 @@ function generate(path, type)
 						end
 					else
 						if v[DATA_START_INDEX] or string.find(data_type, "obj") then
-							value = get_value(data_type, v[DATA_START_INDEX])
+							local value = get_value(data_type, v[DATA_START_INDEX])
 
 							if key_child then
 								config[key]["#sort#"] = config[key]["#sort#"] or {}
