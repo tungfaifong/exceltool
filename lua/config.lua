@@ -1,5 +1,4 @@
 luacom = require("luacom")
-luaiconv = require("luaiconv")
 winfile = require("winfile")
 
 --初始化下lua代码路径
