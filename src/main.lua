@@ -2,11 +2,11 @@ require("config")
 require("util")
 require("generate")
 
-excel = luacom.GetObject('Excel.Application')
+excel = luacom.GetObject('Excel.Application') or luacom.GetObject('Ket.Application')
 local is_opening_excel = true
 
 if not excel then
-	excel = luacom.CreateObject('Excel.Application')
+	excel = luacom.CreateObject('Excel.Application') or luacom.CreateObject('Ket.Application')
 	is_opening_excel = false
 end
 
