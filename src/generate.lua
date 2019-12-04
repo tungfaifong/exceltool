@@ -8,7 +8,11 @@ FLOAT_FIX = 0.0000000000005
 
 local function getValue(data_type, value)
 	if string.find(data_type, "bool") then
-		return tonumber(value) > 0
+		if type(value) == "boolean" then
+			return value
+		else
+			return tonumber(value) > 0
+		end
 	elseif string.find(data_type, "int") then
 		return math.floor(tonumber(value) + FLOAT_FIX)
 	elseif string.find(data_type, "float") then
