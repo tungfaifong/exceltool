@@ -4,7 +4,9 @@ function stringSplit(str, splitter)
     while true do
         local index = string.find(str, splitter, start_index)
         if not index then
-            table.insert(str_list, string.sub(str, start_index, string.len(str)))
+            if start_index <= string.len(str) then
+                table.insert(str_list, string.sub(str, start_index, string.len(str)))
+            end
             break
         end
         table.insert(str_list, string.sub(str, start_index, index - 1))
